@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supertrend Tarayıcı — 12.06.2026 11:51</title>
+<style>
+  :root {
+    --bg: #0f1115; --surface: #181b22; --surface-2: #20242d;
+    --border: #2a2f3a; --text: #e8eaed; --text-mute: #9aa0a6;
+    --buy: #1D9E75; --buy-bg: rgba(29,158,117,0.15);
+    --sell: #E24B4A; --sell-bg: rgba(226,75,74,0.15);
+    --mixed: #BA7517; --mixed-bg: rgba(186,117,23,0.15);
+    --accent: #7F77DD;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #fafbfc; --surface: #ffffff; --surface-2: #f4f5f7;
+      --border: #e4e6eb; --text: #1a1d23; --text-mute: #5f6770;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px; line-height: 1.5;
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+  header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+    padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  h1 { font-size: 22px; font-weight: 500; margin: 0; }
+  .scan-time { color: var(--text-mute); font-size: 13px; margin-top: 4px; }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px; margin-bottom: 20px;
+  }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .stat-label { font-size: 11px; color: var(--text-mute); margin-bottom: 2px;
+                 text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-val { font-size: 22px; font-weight: 500; }
+  .stat-val.buy { color: var(--buy); }
+  .stat-val.sell { color: var(--sell); }
+  .stat-val.strong { color: var(--accent); }
+
+  .controls {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
+    align-items: center;
+  }
+  .filter-btn {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 6px 14px; border-radius: 999px;
+    font-size: 12px; cursor: pointer; transition: all 0.15s;
+  }
+  .filter-btn:hover { background: var(--surface-2); }
+  .filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+  .search-input {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 6px 12px; border-radius: 8px;
+    font-size: 13px; margin-left: auto; min-width: 140px;
+  }
+
+  .cards {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; transition: all 0.15s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .card.hidden { display: none; }
+
+  .card-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 10px; margin-bottom: 10px;
+  }
+  .symbol { font-size: 18px; font-weight: 500; }
+  .symbol a { color: var(--text); text-decoration: none; }
+  .symbol a:hover { color: var(--accent); }
+  .company { font-size: 11px; color: var(--text-mute); margin-top: 2px; }
+  .badges { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+
+  .signal-badge {
+    font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 6px;
+  }
+  .signal-badge.buy { background: var(--buy-bg); color: var(--buy); }
+  .signal-badge.sell { background: var(--sell-bg); color: var(--sell); }
+  .signal-badge.mixed { background: var(--mixed-bg); color: var(--mixed); }
+
+  .pool-badge {
+    font-size: 10px; padding: 2px 7px; border-radius: 4px;
+    background: var(--surface-2); color: var(--text-mute);
+  }
+  .pool-badge.pool-b { background: rgba(186,117,23,0.15); color: var(--mixed); }
+
+  .strong-badge {
+    font-size: 10px; color: var(--accent); margin-left: 6px;
+    font-weight: 500;
+  }
+
+  .price-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .price { font-size: 22px; font-weight: 500; }
+  .returns { display: flex; gap: 10px; font-size: 12px; }
+
+  .sparkline { margin: 6px 0 10px; }
+
+  .tf-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tf-chip {
+    font-size: 11px; padding: 3px 8px; border-radius: 4px;
+    font-family: ui-monospace, "SF Mono", Monaco, monospace;
+  }
+  .tf-buy { background: var(--buy-bg); color: var(--buy); }
+  .tf-sell { background: var(--sell-bg); color: var(--sell); }
+
+  .metrics {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; margin-bottom: 10px;
+    padding: 10px; background: var(--surface-2); border-radius: 8px;
+  }
+  .m-label { font-size: 10px; color: var(--text-mute); margin-bottom: 2px; }
+  .m-val { font-size: 13px; font-weight: 500; }
+
+  .sector-row { font-size: 11px; color: var(--text-mute); margin-bottom: 8px; }
+  .themes { display: flex; gap: 4px; flex-wrap: wrap; }
+  .theme-pill {
+    font-size: 10px; padding: 2px 7px; border-radius: 4px;
+    background: var(--surface-2); color: var(--text-mute);
+  }
+
+  footer {
+    margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--text-mute); text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    .container { padding: 12px; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .cards { grid-template-columns: 1fr; }
+    .returns { flex-direction: column; gap: 2px; align-items: flex-end; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>Supertrend Sinyalleri</h1>
+      <div class="scan-time">Tarama: 12.06.2026 11:51</div>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Toplam</div><div class="stat-val">1</div></div>
+    <div class="stat"><div class="stat-label">↑ BUY</div><div class="stat-val buy">0</div></div>
+    <div class="stat"><div class="stat-label">↓ SELL</div><div class="stat-val sell">1</div></div>
+    <div class="stat"><div class="stat-label">★ Çoklu TF</div><div class="stat-val strong">0</div></div>
+  </div>
+
+  <div class="controls">
+    <button class="filter-btn active" data-filter="all">Tümü</button>
+    <button class="filter-btn" data-filter="buy">↑ BUY</button>
+    <button class="filter-btn" data-filter="sell">↓ SELL</button>
+    <button class="filter-btn" data-filter="strong">★ Güçlü</button>
+    <button class="filter-btn" data-filter="pool-a">Compounder</button>
+    <button class="filter-btn" data-filter="pool-b">Moonshot</button>
+    <button class="filter-btn" data-filter-theme="CYBER">CYBER</button>
+    <input class="search-input" type="text" id="search" placeholder="Sembol ara...">
+  </div>
+
+  <div class="cards" id="cards">
+    
+        <div class="card" data-symbol="GEN" data-pool="A"
+             data-signal="sell" data-themes="CYBER">
+          <div class="card-head">
+            <div>
+              <div class="symbol">
+                <a href="https://www.tradingview.com/symbols/GEN/" target="_blank">GEN</a>
+                
+              </div>
+              <div class="company">Gen Digital Inc.</div>
+            </div>
+            <div class="badges">
+              <span class="signal-badge sell">↓ SELL</span>
+              <span class="pool-badge pool-a">COMPOUNDER</span>
+            </div>
+          </div>
+
+          <div class="price-row">
+            <div class="price">$23.94</div>
+            <div class="returns">
+              <span style="color:#1D9E75">1A: +9.2%</span>
+              <span style="color:#E24B4A">6A: -12.1%</span>
+              <span style="color:#E24B4A;font-size:11px">✗ 200-SMA altı</span>
+            </div>
+          </div>
+
+          <div class="sparkline"><svg viewBox="0 0 300 50" preserveAspectRatio="none" style="width:100%;height:50px;display:block;"><polyline fill="none" stroke="#E24B4A" stroke-width="1.8" points="0.0,47.0 10.3,46.6 20.7,45.3 31.0,44.9 41.4,45.6 51.7,42.4 62.1,29.7 72.4,31.1 82.8,33.0 93.1,26.6 103.4,27.1 113.8,25.7 124.1,20.6 134.5,20.7 144.8,17.2 155.2,17.9 165.5,18.1 175.9,18.4 186.2,19.2 196.6,19.5 206.9,13.1 217.2,3.0 227.6,4.2 237.9,9.5 248.3,9.4 258.6,10.6 269.0,12.8 279.3,17.3 289.7,19.1 300.0,22.6"/><circle cx="300.0" cy="22.6" r="3" fill="#E24B4A"/></svg></div>
+
+          <div class="tf-row"><span class="tf-chip tf-sell">1G @$23.94</span></div>
+
+          <div class="metrics">
+            <div><div class="m-label">Piyasa Değ.</div><div class="m-val">$14.42B</div></div>
+            <div><div class="m-label">P/S</div><div class="m-val">2.9</div></div>
+            <div><div class="m-label">P/E</div><div class="m-val">15.2</div></div>
+            <div><div class="m-label">Gelir Bym.</div><div class="m-val">+27.0%</div></div>
+            <div><div class="m-label">Brüt Marj</div><div class="m-val">+78.5%</div></div>
+            <div><div class="m-label">Net Marj</div><div class="m-val">+19.5%</div></div>
+            <div><div class="m-label">Gelir (TTM)</div><div class="m-val">$5.00B</div></div>
+            <div><div class="m-label">Skor</div><div class="m-val">7.34</div></div>
+          </div>
+
+          <div class="sector-row">
+            <span class="sector">Technology · Software - Infrastructure</span>
+          </div>
+
+          <div class="themes"><span class="theme-pill theme-CYBER">CYBER</span></div>
+        </div>
+        
+  </div>
+
+  <footer>
+    Bu yatırım tavsiyesi değildir. Tarayıcı bir bildirim aracıdır.<br>
+    Veri kaynağı: Yahoo Finance (yfinance) · Sembollere tıklayınca TradingView grafiği açılır.
+  </footer>
+</div>
+
+<script>
+const strong = new Set([]);
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const f = btn.dataset.filter;
+    const ft = btn.dataset.filterTheme;
+    document.querySelectorAll('.card').forEach(card => {
+      let show = true;
+      if (ft) {
+        show = (card.dataset.themes || '').split(',').includes(ft);
+      } else if (f === 'buy') {
+        show = card.dataset.signal === 'buy';
+      } else if (f === 'sell') {
+        show = card.dataset.signal === 'sell';
+      } else if (f === 'strong') {
+        show = strong.has(card.dataset.symbol);
+      } else if (f === 'pool-a') {
+        show = card.dataset.pool === 'A';
+      } else if (f === 'pool-b') {
+        show = card.dataset.pool === 'B';
+      }
+      card.classList.toggle('hidden', !show);
+    });
+  });
+});
+
+document.getElementById('search').addEventListener('input', e => {
+  const q = e.target.value.trim().toUpperCase();
+  document.querySelectorAll('.card').forEach(card => {
+    card.classList.toggle('hidden', q && !card.dataset.symbol.startsWith(q));
+  });
+});
+</script>
+</body>
+</html>
